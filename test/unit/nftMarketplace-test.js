@@ -181,4 +181,46 @@ const { developmentChains } = require("../../helper-hardhat-config")
                   assert.equal(ethValue.toString(), "1.0")
               })
           })
+
+          describe("withdrawProceeds", () => {
+              it("reverts if there are no proceeds", async () => {
+                  // we skip connect buyer/player and hence we don't buy
+                  await expect(nftMarketplace.withdrawProceeds()).to.be.revertedWithCustomError(
+                      nftMarketplace,
+                      "NftMarketplace__NoProceeds"
+                  )
+              })
+
+              it("resets proceeds to 0 & succesfully withdraws proceeds", async () => {
+                  await nftMarketplace.listItem(basicNft.address, TOKEN_ID, PRICE) // listing
+                  const playerConnectedNftMarketplace = nftMarketplace.connect(player) // connect buyer
+                  await playerConnectedNftMarketplace.buyItem(basicNft.address, TOKEN_ID, {
+                      // buys nft
+                      value: PRICE,
+                  })
+                  const proceeds = await nftMarketplace.getProceeds(deployer.address) // in wei
+                  const ethValue = ethers.utils.formatEther(proceeds)
+                  assert.equal(ethValue.toString(), "0.1")
+                  // withdrawing
+                  await nftMarketplace.withdrawProceeds()
+                  const newProceeds = await nftMarketplace.getProceeds(deployer.address)
+                  assert.equal(newProceeds, "0")
+              })
+
+              it("reverts if transfer fails", async () => {
+                  player1 = accounts[2]
+                  await nftMarketplace.listItem(basicNft.address, TOKEN_ID, PRICE)
+                  const playerConnectedNftMarketplace = nftMarketplace.connect(player)
+                  await playerConnectedNftMarketplace.buyItem(basicNft.address, TOKEN_ID, {
+                      // buys nft
+                      value: PRICE,
+                  })
+                  const proceeds = await nftMarketplace.getProceeds(deployer.address) // so there are proceeds at this point
+                  const player1NftMarketplace = nftMarketplace.connect(player1)
+                  //nftMarketplace = await ethers.getContract("NftMarketplace")
+                  await expect(
+                      player1NftMarketplace.withdrawProceeds()
+                  ).to.be.revertedWithCustomError(nftMarketplace, "NftMarketplace__TransferFailed")
+              })
+          })
       })
