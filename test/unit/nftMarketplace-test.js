@@ -152,4 +152,33 @@ const { developmentChains } = require("../../helper-hardhat-config")
                   assert.equal(result.price.toString(), "0")
               })
           })
+
+          describe("updateListing", () => {
+              it("must be listed and updated by owner", async () => {
+                  // must be listed / skip listing
+                  await expect(nftMarketplace.updateListing(basicNft.address, TOKEN_ID, PRICE))
+                      .to.be.revertedWithCustomError(nftMarketplace, "NftMarketplace__NotListed")
+                      .withArgs(basicNft.address, TOKEN_ID)
+                  // updated by owner
+                  await nftMarketplace.listItem(basicNft.address, TOKEN_ID, PRICE)
+                  playerConnectedNftMarketplace = nftMarketplace.connect(player)
+                  await expect(
+                      playerConnectedNftMarketplace.updateListing(basicNft.address, TOKEN_ID, PRICE)
+                  ).to.be.revertedWithCustomError(nftMarketplace, "NftMarketplace__NotOwner")
+              })
+
+              it("updates a listing & emit an event", async () => {
+                  const newPrice = ethers.utils.parseEther("1")
+                  await nftMarketplace.listItem(basicNft.address, TOKEN_ID, PRICE) //listing
+                  // update listing
+                  expect(
+                      await nftMarketplace.updateListing(basicNft.address, TOKEN_ID, newPrice)
+                  ).to.emit("ItemListed") // emits an event
+
+                  const result = await nftMarketplace.getListing(basicNft.address, TOKEN_ID)
+                  const weiValue = result.price
+                  const ethValue = ethers.utils.formatEther(weiValue)
+                  assert.equal(ethValue.toString(), "1.0")
+              })
+          })
       })
