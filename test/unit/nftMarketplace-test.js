@@ -95,7 +95,27 @@ const { developmentChains } = require("../../helper-hardhat-config")
                       .withArgs(basicNft.address, TOKEN_ID, PRICE)
               })
 
-              it("listed nft can be bought", async () => {
+              it("proceeds are updated accordingly after purchase", async () => {
+                  await nftMarketplace.listItem(basicNft.address, TOKEN_ID, PRICE) // listing
+                  const playerConnectedNftMarketplace = nftMarketplace.connect(player)
+                  await playerConnectedNftMarketplace.buyItem(basicNft.address, TOKEN_ID, {
+                      value: PRICE,
+                  })
+                  const newProceeds = await nftMarketplace.getProceeds(deployer.address)
+                  assert.equal(newProceeds.toString(), PRICE.toString())
+              })
+
+              it("deletes listing after purchase", async () => {
+                  await nftMarketplace.listItem(basicNft.address, TOKEN_ID, PRICE) // listing
+                  const playerConnectedNftMarketplace = nftMarketplace.connect(player)
+                  await playerConnectedNftMarketplace.buyItem(basicNft.address, TOKEN_ID, {
+                      value: PRICE,
+                  })
+                  const result = await nftMarketplace.getListing(basicNft.address, TOKEN_ID)
+                  assert.equal(result.price.toString(), "0")
+              })
+
+              it("listed nft can be bought / was tranfered", async () => {
                   await nftMarketplace.listItem(basicNft.address, TOKEN_ID, PRICE) // listing
                   const playerConnectedNftMarketplace = nftMarketplace.connect(player)
                   expect(
@@ -103,12 +123,8 @@ const { developmentChains } = require("../../helper-hardhat-config")
                           value: PRICE,
                       })
                   ).to.emit("ItemBought")
-
                   const newOwner = await basicNft.ownerOf(TOKEN_ID)
-                  const deployerProceeds = await nftMarketplace.getProceeds(deployer.address)
-
                   assert(newOwner.toString() == player.address)
-                  assert(deployerProceeds.toString() == PRICE.toString())
               })
           })
       })
