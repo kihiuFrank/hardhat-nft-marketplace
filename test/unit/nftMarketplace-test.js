@@ -208,18 +208,25 @@ const { developmentChains } = require("../../helper-hardhat-config")
               })
 
               it("reverts if transfer fails", async () => {
-                  player1 = accounts[2]
-                  await nftMarketplace.listItem(basicNft.address, TOKEN_ID, PRICE)
-                  const playerConnectedNftMarketplace = nftMarketplace.connect(player)
+                  //player1 = accounts[2]
+                  const withdrawAmount = ethers.utils.parseEther("100")
+                  await nftMarketplace.listItem(basicNft.address, TOKEN_ID, PRICE) // list the nft
+                  const playerConnectedNftMarketplace = nftMarketplace.connect(player) // connect player 1
                   await playerConnectedNftMarketplace.buyItem(basicNft.address, TOKEN_ID, {
+                      // have player 1 buy the nft so deployer can have some proceeds.
+                      //This is to avoid reverting with NftMarketplace__NoProceeds()
                       // buys nft
                       value: PRICE,
                   })
-                  const proceeds = await nftMarketplace.getProceeds(deployer.address) // so there are proceeds at this point
-                  const player1NftMarketplace = nftMarketplace.connect(player1)
-                  //nftMarketplace = await ethers.getContract("NftMarketplace")
+                  //await nftMarketplace.getProceeds(deployer.address) // so there are proceeds at this point
+                  //const player1NftMarketplace = nftMarketplace.connect(player)
+                  //nftMarketplace = await ethers.getContract("NftMarketplace", player)
+                  const proceeds = await nftMarketplace.getProceeds(deployer.address) // in wei
+                  const ethValue = ethers.utils.formatEther(proceeds)
+                  console.log(`${ethValue.toString()} ETH available`)
+
                   await expect(
-                      player1NftMarketplace.withdrawProceeds()
+                      nftMarketplace.withdrawProceeds({ value: withdrawAmount }) // Withdraw more than available.
                   ).to.be.revertedWithCustomError(nftMarketplace, "NftMarketplace__TransferFailed")
               })
           })
