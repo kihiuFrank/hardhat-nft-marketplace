@@ -37,6 +37,7 @@ module.exports = {
             chainId: 5,
             saveDeployments: true,
             blockConfirmations: 6,
+            gas: 6000000,
         },
     },
     solidity: {
